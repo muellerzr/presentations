@@ -1,4 +1,4 @@
-# Conference_Posters
+# Conference Posters
 My research posters I have taken to conferences
 
 
