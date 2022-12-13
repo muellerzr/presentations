@@ -648,7 +648,7 @@ Zachary Mueller
 <section id="empty-model-weights" class="slide level2">
 <h2>Empty Model Weights</h2>
 <p>We can fix step 1 by loading in an empty model skeleton at first:</p>
-<div class="sourceCode" id="cb16" data-code-line-numbers="2,4-5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a><span class="im">from</span> accelerate <span class="im">import</span> init_empty_weights</span>
+<div class="sourceCode" id="cb16" data-code-line-numbers="1,3-4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a><span class="im">from</span> accelerate <span class="im">import</span> init_empty_weights</span>
 <span id="cb16-2"><a href="#cb16-2"></a></span>
 <span id="cb16-3"><a href="#cb16-3"></a><span class="cf">with</span> init_empty_weights():</span>
 <span id="cb16-4"><a href="#cb16-4"></a>    my_model <span class="op">=</span> ModelClass(...)</span>
