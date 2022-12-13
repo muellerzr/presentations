@@ -581,7 +581,7 @@ Zachary Mueller
 <span id="cb13-2"><a href="#cb13-2"></a>accelerator <span class="op">=</span> Accelerator(gradient_accumulation_steps<span class="op">=</span><span class="dv">4</span>)</span>
 <span id="cb13-3"><a href="#cb13-3"></a>...</span>
 <span id="cb13-4"><a href="#cb13-4"></a><span class="cf">for</span> batch <span class="kw">in</span> dataloader:</span>
-<span id="cb13-5"><a href="#cb13-5"></a>    <span class="cf">with</span> accelerator.accumulate(model)</span>
+<span id="cb13-5"><a href="#cb13-5"></a>    <span class="cf">with</span> accelerator.accumulate(model):</span>
 <span id="cb13-6"><a href="#cb13-6"></a>        optimizer.zero_grad()</span>
 <span id="cb13-7"><a href="#cb13-7"></a>        inputs, targets <span class="op">=</span> batch</span>
 <span id="cb13-8"><a href="#cb13-8"></a>        outputs <span class="op">=</span> model(inputs)</span>
@@ -682,7 +682,7 @@ Zachary Mueller
 <span id="cb17-4"><a href="#cb17-4"></a>    my_model <span class="op">=</span> ModelClass(...)</span>
 <span id="cb17-5"><a href="#cb17-5"></a></span>
 <span id="cb17-6"><a href="#cb17-6"></a>my_model <span class="op">=</span> load_checkpoint_and_dispatch(</span>
-<span id="cb17-7"><a href="#cb17-7"></a>    y_model, <span class="st">"sharted-weights"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
+<span id="cb17-7"><a href="#cb17-7"></a>    my_model, <span class="st">"sharded-weights"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
 <span id="cb17-8"><a href="#cb17-8"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><code>device_map="auto"</code> will tell 🤗 Accelerate that it should determine where to put each layer of the model:</p>
 <ol type="1">
@@ -699,12 +699,15 @@ Zachary Mueller
 <span id="cb18-4"><a href="#cb18-4"></a>    my_model <span class="op">=</span> ModelClass(...)</span>
 <span id="cb18-5"><a href="#cb18-5"></a></span>
 <span id="cb18-6"><a href="#cb18-6"></a>my_model <span class="op">=</span> load_checkpoint_and_dispatch(</span>
-<span id="cb18-7"><a href="#cb18-7"></a>    y_model, <span class="st">"sharted-weights"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
+<span id="cb18-7"><a href="#cb18-7"></a>    my_model, <span class="st">"sharded-weights"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
 <span id="cb18-8"><a href="#cb18-8"></a>)</span>
 <span id="cb18-9"><a href="#cb18-9"></a>my_model.<span class="bu">eval</span>()</span>
 <span id="cb18-10"><a href="#cb18-10"></a></span>
 <span id="cb18-11"><a href="#cb18-11"></a><span class="cf">for</span> batch <span class="kw">in</span> dataloader:</span>
 <span id="cb18-12"><a href="#cb18-12"></a>    output <span class="op">=</span> my_model(batch)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="demo" class="slide level2">
+<h2>Demo!</h2>
 </section></section>
 <section>
 <section id="thanks-for-listening" class="title-slide slide level1 center">
