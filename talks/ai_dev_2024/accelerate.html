@@ -7,8 +7,10 @@
 <link href="accelerate_files/libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="accelerate_files/libs/quarto-html/light-border.css" rel="stylesheet">
 <link href="accelerate_files/libs/quarto-html/quarto-html.min.css" rel="stylesheet" data-mode="light">
-<link href="accelerate_files/libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-99.9.9">
+<link href="accelerate_files/libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="accelerate_files/libs/quarto-contrib/videojs/video.min.js"></script>
+<link href="accelerate_files/libs/quarto-contrib/videojs/video-js.css" rel="stylesheet"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.3.450">
 
   <title>Hugging Face Accelerate: Making device-agnostic ML training and inference easy at scale</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,7 +32,7 @@
     }
     /* CSS for syntax highlighting */
     pre > code.sourceCode { white-space: pre; position: relative; }
-    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
     pre > code.sourceCode > span:empty { height: 1.2em; }
     .sourceCode { overflow: visible; }
     code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -220,8 +222,7 @@
   }
 
   .callout.callout-titled .callout-body > .callout-content > :last-child {
-    padding-bottom: 0.5rem;
-    margin-bottom: 0;
+    margin-bottom: 0.5rem;
   }
 
   .callout.callout-titled .callout-icon::before {
@@ -384,9 +385,6 @@
       margin-right: 0; 
     }
   </style>
-  <script src="accelerate_files/libs/quarto-diagram/mermaid.min.js"></script>
-  <script src="accelerate_files/libs/quarto-diagram/mermaid-init.js"></script>
-  <link href="accelerate_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
 </head>
 <body class="quarto-dark">
   <div class="reveal">
@@ -410,31 +408,24 @@
 </section>
 <section id="what-is-accelerate" class="slide level2">
 <h2>What is 🤗 Accelerate?</h2>
-<div class="cell" data-reveal="true" data-fig-height="6">
-<div class="cell-output-display">
-<div>
-<div>
-<pre class="mermaid mermaid-js">graph LR
-    A(("🤗 Accelerate#32;"))
-    A --&gt; B["CLI Interface#32;"]
-    A --&gt; C["Training Framework#32;"]
-    A --&gt; D["Inference Framework#32;"]
-</pre>
-</div>
-</div>
-</div>
-</div>
+<ul>
+<li>A training framework</li>
+<li>An inference framework</li>
+<li>A command-line interface</li>
+</ul>
 </section>
 <section id="a-training-framework" class="slide level2">
 <h2>A Training Framework</h2>
 <ul>
 <li>Powered by PyTorch</li>
-<li>Device <em>and</em> hardware-agnostic</li>
-<li>Low-code, with minimal magic</li>
+<li>Change a few lines of code, gain device <em>and</em> hardware-agnostic capabilities</li>
+<li>Low-code, with minimal magic aimed at easy hackability and use without high-level abstractions</li>
+<li>We handle the intracies so you don’t have to</li>
 </ul>
 </section>
 <section id="a-training-framework-1" class="slide level2">
 <h2>A Training Framework</h2>
+<div style="font-size: 70%;">
 <ul>
 <li>Support for any hardware-accelerator on the market:
 <ul>
@@ -444,16 +435,22 @@
 <ul>
 <li>FP16, BF16, FP8 (through either <code>TransformerEngine</code> or <code>MS-AMP</code>)</li>
 </ul></li>
-<li>Easy to configure class-level or YAML-level for setting up advanced engines like <code>FSDP</code> or <code>DeepSpeed</code></li>
+<li>Automatic and efficient gradient accumulation</li>
+<li>Support for quantization through <code>bitsandbytes</code></li>
+<li>Support your favorite experiment trackers (<code>aim</code>, <code>clearml</code>, <code>comet_ml</code>, <code>dvc-lite</code>, <code>ml-flow</code>, <code>tensorboard</code>, <code>wandb</code>)</li>
+<li>Easy to configure plugin or YAML-level API for setting up advanced frameworks like <code>FSDP</code>, <code>DeepSpeed</code>, and <code>Megatron-LM</code></li>
 </ul>
+</div>
 </section>
 <section id="low-code" class="slide level2">
 <h2>Low-Code</h2>
+<div style="font-size: 70%;">
 <ul>
 <li>Biggest friction with “wrapper” libraries is control of your code</li>
-<li>By being minimally intrusive, your code just “works”</li>
+<li>By being minimally intrusive, your code just “works” while still giving you complete control</li>
 </ul>
-<div style="font-size: 50%;padding-left:20%;padding-top:0%;padding-right:25%">
+</div>
+<div style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%">
 <div class="sourceCode" id="cb1"><pre class="sourceCode numberSource diff number-lines code-with-copy"><code class="sourceCode diff"><span id="cb1-1"><a href="#cb1-1"></a>  import torch</span>
 <span id="cb1-2"><a href="#cb1-2"></a>  import torch.nn.functional as F</span>
 <span id="cb1-3"><a href="#cb1-3"></a>  from datasets import load_dataset</span>
@@ -489,19 +486,106 @@
 <li>Due to the low-code nature, it’s trivial to integrate into existing PyTorch frameworks:
 <ol type="1">
 <li>Create an <code>Accelerator</code></li>
-<li>Wrap your PyTorch objects with <code>accelerator.prepare</code></li>
+</ol></li>
+</ul>
+</div>
+<div style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%">
+<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource diff number-lines code-with-copy"><code class="sourceCode diff"><span id="cb2-1"><a href="#cb2-1"></a>  import torch</span>
+<span id="cb2-2"><a href="#cb2-2"></a>  import torch.nn.functional as F</span>
+<span id="cb2-3"><a href="#cb2-3"></a>  from datasets import load_dataset</span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="va">+ from accelerate import Accelerator</span></span>
+<span id="cb2-5"><a href="#cb2-5"></a></span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="va">+ accelerator = Accelerator()</span></span>
+<span id="cb2-7"><a href="#cb2-7"></a>  device = 'cpu'</span>
+<span id="cb2-8"><a href="#cb2-8"></a></span>
+<span id="cb2-9"><a href="#cb2-9"></a>  model = torch.nn.Transformer().to(device)</span>
+<span id="cb2-10"><a href="#cb2-10"></a>  optimizer = torch.optim.Adam(model.parameters())</span>
+<span id="cb2-11"><a href="#cb2-11"></a>  dataset = load_dataset('my_dataset')</span>
+<span id="cb2-12"><a href="#cb2-12"></a>  data = torch.utils.data.DataLoader(dataset, shuffle=True)</span>
+<span id="cb2-13"><a href="#cb2-13"></a></span>
+<span id="cb2-14"><a href="#cb2-14"></a>  model.train()</span>
+<span id="cb2-15"><a href="#cb2-15"></a>  for epoch in range(10):</span>
+<span id="cb2-16"><a href="#cb2-16"></a>      for source, targets in dataloader:</span>
+<span id="cb2-17"><a href="#cb2-17"></a>          source, targets = source.to(device), targets.to(device)</span>
+<span id="cb2-18"><a href="#cb2-18"></a>          optimizer.zero_grad()</span>
+<span id="cb2-19"><a href="#cb2-19"></a>          output = model(source)</span>
+<span id="cb2-20"><a href="#cb2-20"></a>          loss = F.cross_entropy(output, targets)</span>
+<span id="cb2-21"><a href="#cb2-21"></a>          loss.backward()</span>
+<span id="cb2-22"><a href="#cb2-22"></a>          optimizer.step()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="easy-to-integrate-1" class="slide level2">
+<h2>Easy to integrate</h2>
+<div style="font-size: 70%;">
+<ul>
+<li>Due to the low-code nature, it’s trivial to integrate into existing PyTorch frameworks:
+<ol start="2" type="1">
+<li>Wrap your PyTorch objects with <code>accelerator.prepare</code> and remove device-placements</li>
+</ol></li>
+</ul>
+</div>
+<div style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%">
+<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource diff number-lines code-with-copy"><code class="sourceCode diff"><span id="cb3-1"><a href="#cb3-1"></a>  import torch</span>
+<span id="cb3-2"><a href="#cb3-2"></a>  import torch.nn.functional as F</span>
+<span id="cb3-3"><a href="#cb3-3"></a>  from datasets import load_dataset</span>
+<span id="cb3-4"><a href="#cb3-4"></a>  from accelerate import Accelerator</span>
+<span id="cb3-5"><a href="#cb3-5"></a></span>
+<span id="cb3-6"><a href="#cb3-6"></a>  accelerator = Accelerator()</span>
+<span id="cb3-7"><a href="#cb3-7"></a><span class="st">- device = 'cpu'</span></span>
+<span id="cb3-8"><a href="#cb3-8"></a></span>
+<span id="cb3-9"><a href="#cb3-9"></a>  model = torch.nn.Transformer().to(device)</span>
+<span id="cb3-10"><a href="#cb3-10"></a>  optimizer = torch.optim.Adam(model.parameters())</span>
+<span id="cb3-11"><a href="#cb3-11"></a>  dataset = load_dataset('my_dataset')</span>
+<span id="cb3-12"><a href="#cb3-12"></a>  data = torch.utils.data.DataLoader(dataset, shuffle=True)</span>
+<span id="cb3-13"><a href="#cb3-13"></a></span>
+<span id="cb3-14"><a href="#cb3-14"></a><span class="va">+ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)</span></span>
+<span id="cb3-15"><a href="#cb3-15"></a></span>
+<span id="cb3-16"><a href="#cb3-16"></a>  model.train()</span>
+<span id="cb3-17"><a href="#cb3-17"></a>  for epoch in range(10):</span>
+<span id="cb3-18"><a href="#cb3-18"></a>      for source, targets in dataloader:</span>
+<span id="cb3-19"><a href="#cb3-19"></a>          source, targets = source.to(device), targets.to(device)</span>
+<span id="cb3-20"><a href="#cb3-20"></a>          optimizer.zero_grad()</span>
+<span id="cb3-21"><a href="#cb3-21"></a>          output = model(source)</span>
+<span id="cb3-22"><a href="#cb3-22"></a>          loss = F.cross_entropy(output, targets)</span>
+<span id="cb3-23"><a href="#cb3-23"></a>          loss.backward()</span>
+<span id="cb3-24"><a href="#cb3-24"></a>          optimizer.step()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="easy-to-integrate-2" class="slide level2">
+<h2>Easy to integrate</h2>
+<div style="font-size: 70%;">
+<ul>
+<li>Due to the low-code nature, it’s trivial to integrate into existing PyTorch frameworks:
+<ol start="3" type="1">
 <li>Use <code>accelerator.backward</code> for the backward pass</li>
 </ol></li>
-<li>Many of the frameworks you use daily already rely on 🤗 Accelerate too!
-<ul>
-<li>Nearly all of 🤗</li>
-<li><code>axolotl</code></li>
-<li><code>fastai</code></li>
-<li><code>FastChat</code></li>
-<li><code>lucidrains</code></li>
-<li><code>kornia</code></li>
-</ul></li>
 </ul>
+</div>
+<div style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%">
+<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource diff number-lines code-with-copy"><code class="sourceCode diff"><span id="cb4-1"><a href="#cb4-1"></a>  import torch</span>
+<span id="cb4-2"><a href="#cb4-2"></a>  import torch.nn.functional as F</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  from datasets import load_dataset</span>
+<span id="cb4-4"><a href="#cb4-4"></a>  from accelerate import Accelerator</span>
+<span id="cb4-5"><a href="#cb4-5"></a></span>
+<span id="cb4-6"><a href="#cb4-6"></a>  accelerator = Accelerator()</span>
+<span id="cb4-7"><a href="#cb4-7"></a></span>
+<span id="cb4-8"><a href="#cb4-8"></a>  model = torch.nn.Transformer().to(device)</span>
+<span id="cb4-9"><a href="#cb4-9"></a>  optimizer = torch.optim.Adam(model.parameters())</span>
+<span id="cb4-10"><a href="#cb4-10"></a>  dataset = load_dataset('my_dataset')</span>
+<span id="cb4-11"><a href="#cb4-11"></a>  data = torch.utils.data.DataLoader(dataset, shuffle=True)</span>
+<span id="cb4-12"><a href="#cb4-12"></a></span>
+<span id="cb4-13"><a href="#cb4-13"></a>  model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)</span>
+<span id="cb4-14"><a href="#cb4-14"></a></span>
+<span id="cb4-15"><a href="#cb4-15"></a>  model.train()</span>
+<span id="cb4-16"><a href="#cb4-16"></a>  for epoch in range(10):</span>
+<span id="cb4-17"><a href="#cb4-17"></a>      for source, targets in dataloader:</span>
+<span id="cb4-18"><a href="#cb4-18"></a>          source, targets = source.to(device), targets.to(device)</span>
+<span id="cb4-19"><a href="#cb4-19"></a>          optimizer.zero_grad()</span>
+<span id="cb4-20"><a href="#cb4-20"></a>          output = model(source)</span>
+<span id="cb4-21"><a href="#cb4-21"></a>          loss = F.cross_entropy(output, targets)</span>
+<span id="cb4-22"><a href="#cb4-22"></a><span class="st">-         loss.backward()</span></span>
+<span id="cb4-23"><a href="#cb4-23"></a><span class="va">+         accelerator.backward(loss)</span></span>
+<span id="cb4-24"><a href="#cb4-24"></a>          optimizer.step()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="but-what-about-inference" class="slide level2">
@@ -517,8 +601,10 @@
 <ul>
 <li>PyTorch introduced <code>device="meta"</code></li>
 <li>🤗 Accelerate introduced <code>device_map="auto"</code></li>
-<li>As an input goes through the models, the layers are moved automatically to the right device while the old layers are shoved back to the CPU (or even disk)</li>
 </ul>
+<div style="padding-left:15%;padding-right:20%">
+<video id="video_shortcode_videojs_video1" width="800" height="400" class="video-js vjs-default-skin " controls="" preload="auto" data-setup="{}" title=""><source src="big_model_visualization.mp4"></video>
+</div>
 </section>
 <section id="a-cli-interface" class="slide level2">
 <h2>A CLI Interface</h2>
@@ -535,16 +621,39 @@
 </section>
 <section id="launching-distributed-training-is-hard" class="slide level2">
 <h2>Launching distributed training is hard</h2>
-<ul>
-<li><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1"></a><span class="ex">python</span> script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
-<li><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1"></a><span class="ex">torchrun</span> <span class="at">--nnodes</span><span class="op">=</span>1 <span class="at">--nproc_per_node</span><span class="op">=</span>2 script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
-<li><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1"></a><span class="ex">deepspeed</span> <span class="at">--num_gpus</span><span class="op">=</span>2 script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-How can we make this better?</li>
-</ul>
+<div style="padding-top:0%;padding-left:10%;padding-right:15%;padding-bottom:0%">
+<div class="sourceCode" id="cb5"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1"></a><span class="ex">python</span> script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div style="padding-left:50%;padding-bottom:0%;padding-top:0%;">
+<p>vs.</p>
+</div>
+<p><br></p>
+<div style="padding-top:0%;padding-left:10%;padding-right:15%;padding-bottom:0%">
+<div class="sourceCode" id="cb6"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1"></a><span class="ex">torchrun</span> <span class="at">--nnodes</span><span class="op">=</span>1 <span class="at">--nproc_per_node</span><span class="op">=</span>2 script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div style="padding-left:50%;padding-bottom:0%;padding-top:0%;">
+<p>vs.</p>
+</div>
+<p><br></p>
+<div style="padding-top:0%;padding-left:10%;padding-right:15%;padding-bottom:0%">
+<div class="sourceCode" id="cb7"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1"></a><span class="ex">deepspeed</span> <span class="at">--num_gpus</span><span class="op">=</span>2 script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
+</div>
+<p>How can we make this better?</p>
 </section>
 <section id="accelerate-launch" class="slide level2">
 <h2><code>accelerate launch</code></h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1"></a><span class="ex">accelerate</span> launch script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div style="padding-top:0%;padding-left:5%;padding-right:10%;padding-bottom:0%">
+<div class="sourceCode" id="cb8"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1"></a><span class="ex">accelerate</span> launch script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1"></a><span class="ex">accelerate</span> launch <span class="at">--multi_gpu</span> <span class="at">--num_processes</span> 2 script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1"></a><span class="ex">accelerate</span> launch <span class="dt">\</span></span>
+<span id="cb10-2"><a href="#cb10-2"></a>  <span class="at">--multi_gpu</span> <span class="dt">\ </span></span>
+<span id="cb10-3"><a href="#cb10-3"></a>  <span class="ex">--use_deepspeed</span> <span class="dt">\</span></span>
+<span id="cb10-4"><a href="#cb10-4"></a>  <span class="at">--num_processes</span> 2 <span class="dt">\</span></span>
+<span id="cb10-5"><a href="#cb10-5"></a>  script.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 <section id="accelerate-config" class="slide level2">
 <h2><code>accelerate config</code></h2>
@@ -552,40 +661,40 @@ How can we make this better?</li>
 <li>Rely on <code>config.yaml</code> files</li>
 <li>Choose to either running <code>accelerate config</code> or write your own:</li>
 </ul>
-<div class="columns" style="font-size: 50%;padding-left:10%;">
+<div class="columns" style="font-size: 60%;padding-left:5%;padding-right:5%">
 <div class="column" style="width:40%;">
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>ddp_config.yaml</strong></pre>
 </div>
-<div class="sourceCode" id="cb6" data-filename="ddp_config.yaml"><pre class="sourceCode numberSource yaml number-lines code-with-copy"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1"></a><span class="fu">compute_environment</span><span class="kw">:</span><span class="at"> LOCAL_MACHINE</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="fu">distributed_type</span><span class="kw">:</span><span class="at"> MULTI_GPU</span></span>
-<span id="cb6-3"><a href="#cb6-3"></a><span class="fu">main_training_function</span><span class="kw">:</span><span class="at"> main</span></span>
-<span id="cb6-4"><a href="#cb6-4"></a><span class="fu">mixed_precision</span><span class="kw">:</span><span class="at"> bf16</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="fu">num_machines</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a><span class="fu">num_processes</span><span class="kw">:</span><span class="at"> </span><span class="dv">8</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode numberSource yaml number-lines code-with-copy"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1"></a><span class="fu">compute_environment</span><span class="kw">:</span><span class="at"> LOCAL_MACHINE</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="fu">distributed_type</span><span class="kw">:</span><span class="at"> MULTI_GPU</span></span>
+<span id="cb11-3"><a href="#cb11-3"></a><span class="fu">main_training_function</span><span class="kw">:</span><span class="at"> main</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="fu">mixed_precision</span><span class="kw">:</span><span class="at"> bf16</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a><span class="fu">num_machines</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="fu">num_processes</span><span class="kw">:</span><span class="at"> </span><span class="dv">8</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div><div class="column" style="width:40%;">
 <div class="code-with-filename">
 <div class="code-with-filename-file">
 <pre><strong>fsdp_config.yaml</strong></pre>
 </div>
-<div class="sourceCode" id="cb7" data-filename="fsdp_config.yaml"><pre class="sourceCode numberSource yaml number-lines code-with-copy"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1"></a><span class="fu">compute_environment</span><span class="kw">:</span><span class="at"> LOCAL_MACHINE</span></span>
-<span id="cb7-2"><a href="#cb7-2"></a><span class="fu">distributed_type</span><span class="kw">:</span><span class="at"> FSDP</span></span>
-<span id="cb7-3"><a href="#cb7-3"></a><span class="fu">fsdp_config</span><span class="kw">:</span></span>
-<span id="cb7-4"><a href="#cb7-4"></a><span class="at">  </span><span class="fu">fsdp_auto_wrap_policy</span><span class="kw">:</span><span class="at"> TRANSFORMER_BASED_WRAP</span></span>
-<span id="cb7-5"><a href="#cb7-5"></a><span class="at">  </span><span class="fu">fsdp_backward_prefetch</span><span class="kw">:</span><span class="at"> BACKWARD_PRE</span></span>
-<span id="cb7-6"><a href="#cb7-6"></a><span class="at">  </span><span class="fu">fsdp_cpu_ram_efficient_loading</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-7"><a href="#cb7-7"></a><span class="at">  </span><span class="fu">fsdp_forward_prefetch</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb7-8"><a href="#cb7-8"></a><span class="at">  </span><span class="fu">fsdp_offload_params</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb7-9"><a href="#cb7-9"></a><span class="at">  </span><span class="fu">fsdp_sharding_strategy</span><span class="kw">:</span><span class="at"> FULL_SHARD</span></span>
-<span id="cb7-10"><a href="#cb7-10"></a><span class="at">  </span><span class="fu">fsdp_state_dict_type</span><span class="kw">:</span><span class="at"> SHARDED_STATE_DICT</span></span>
-<span id="cb7-11"><a href="#cb7-11"></a><span class="at">  </span><span class="fu">fsdp_sync_module_states</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-12"><a href="#cb7-12"></a><span class="at">  </span><span class="fu">fsdp_use_orig_params</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb7-13"><a href="#cb7-13"></a><span class="fu">main_training_function</span><span class="kw">:</span><span class="at"> main</span></span>
-<span id="cb7-14"><a href="#cb7-14"></a><span class="fu">mixed_precision</span><span class="kw">:</span><span class="at"> bf16</span></span>
-<span id="cb7-15"><a href="#cb7-15"></a><span class="fu">num_machines</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
-<span id="cb7-16"><a href="#cb7-16"></a><span class="fu">num_processes</span><span class="kw">:</span><span class="at"> </span><span class="dv">8</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode numberSource yaml number-lines code-with-copy"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1"></a><span class="fu">compute_environment</span><span class="kw">:</span><span class="at"> LOCAL_MACHINE</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="fu">distributed_type</span><span class="kw">:</span><span class="at"> FSDP</span></span>
+<span id="cb12-3"><a href="#cb12-3"></a><span class="fu">fsdp_config</span><span class="kw">:</span></span>
+<span id="cb12-4"><a href="#cb12-4"></a><span class="at">  </span><span class="fu">fsdp_auto_wrap_policy</span><span class="kw">:</span><span class="at"> TRANSFORMER_BASED_WRAP</span></span>
+<span id="cb12-5"><a href="#cb12-5"></a><span class="at">  </span><span class="fu">fsdp_backward_prefetch</span><span class="kw">:</span><span class="at"> BACKWARD_PRE</span></span>
+<span id="cb12-6"><a href="#cb12-6"></a><span class="at">  </span><span class="fu">fsdp_cpu_ram_efficient_loading</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb12-7"><a href="#cb12-7"></a><span class="at">  </span><span class="fu">fsdp_forward_prefetch</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb12-8"><a href="#cb12-8"></a><span class="at">  </span><span class="fu">fsdp_offload_params</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb12-9"><a href="#cb12-9"></a><span class="at">  </span><span class="fu">fsdp_sharding_strategy</span><span class="kw">:</span><span class="at"> FULL_SHARD</span></span>
+<span id="cb12-10"><a href="#cb12-10"></a><span class="at">  </span><span class="fu">fsdp_state_dict_type</span><span class="kw">:</span><span class="at"> SHARDED_STATE_DICT</span></span>
+<span id="cb12-11"><a href="#cb12-11"></a><span class="at">  </span><span class="fu">fsdp_sync_module_states</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb12-12"><a href="#cb12-12"></a><span class="at">  </span><span class="fu">fsdp_use_orig_params</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb12-13"><a href="#cb12-13"></a><span class="fu">main_training_function</span><span class="kw">:</span><span class="at"> main</span></span>
+<span id="cb12-14"><a href="#cb12-14"></a><span class="fu">mixed_precision</span><span class="kw">:</span><span class="at"> bf16</span></span>
+<span id="cb12-15"><a href="#cb12-15"></a><span class="fu">num_machines</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb12-16"><a href="#cb12-16"></a><span class="fu">num_processes</span><span class="kw">:</span><span class="at"> </span><span class="dv">8</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -621,47 +730,96 @@ How can we make this better?</li>
 </ul>
 <p>All of which are supported by 🤗 Accelerate</p>
 </section>
+<section id="lower-abstractions" class="slide level2">
+<h2>Lower abstractions</h2>
+<ul>
+<li>While the <code>Accelerator</code> was great, needed better abstractions focused on controlling behaviors</li>
+<li>Introduced the <code>PartialState</code></li>
+</ul>
+<div style="padding-left:10%;padding-top:0%;padding-right:15%">
+<div class="sourceCode" id="cb13"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1"></a><span class="im">from</span> accelerate <span class="im">import</span> PartialState</span>
+<span id="cb13-2"><a href="#cb13-2"></a></span>
+<span id="cb13-3"><a href="#cb13-3"></a><span class="cf">if</span> PartialState().is_main_process:</span>
+<span id="cb13-4"><a href="#cb13-4"></a>  <span class="co"># Run on only 1 device</span></span>
+<span id="cb13-5"><a href="#cb13-5"></a></span>
+<span id="cb13-6"><a href="#cb13-6"></a><span class="cf">with</span> PartialState().main_process_first:</span>
+<span id="cb13-7"><a href="#cb13-7"></a>  <span class="co"># Useful for dataset processing</span></span>
+<span id="cb13-8"><a href="#cb13-8"></a></span>
+<span id="cb13-9"><a href="#cb13-9"></a><span class="co"># Device-agnostic without the bulk of the `Accelerator`</span></span>
+<span id="cb13-10"><a href="#cb13-10"></a>device <span class="op">=</span> PartialState().device</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
 <section id="faster-and-better-inference-alternatives" class="slide level2">
 <h2>Faster and better inference alternatives</h2>
+<div style="font-size:70%">
 <ul>
 <li><code>PiPPy</code> gives us efficient pipeline-parallelism in distributed environments to increase throughput while keeping a simple torch-bound API</li>
+<li>Rather than having to wait for each GPU, every GPU can be busy in parallel</li>
 </ul>
-<p>[Insert PiPPY visualization] (left half)</p>
-<p>[Insert PiPPY code] (right half)</p>
+</div>
+<div style="font-size:60%;padding-left:19%;padding-top:0%;padding-right:24%;">
+<div class="sourceCode" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a><span class="im">import</span> torch</span>
+<span id="cb14-2"><a href="#cb14-2"></a><span class="im">from</span> transformers <span class="im">import</span> AutoModelForSequenceClassification</span>
+<span id="cb14-3"><a href="#cb14-3"></a></span>
+<span id="cb14-4"><a href="#cb14-4"></a><span class="im">from</span> accelerate <span class="im">import</span> PartialState, prepare_pippy</span>
+<span id="cb14-5"><a href="#cb14-5"></a></span>
+<span id="cb14-6"><a href="#cb14-6"></a>model <span class="op">=</span> AutoModelForSequenceClassification.from_pretrained(<span class="st">"gpt2"</span>)</span>
+<span id="cb14-7"><a href="#cb14-7"></a>model.<span class="bu">eval</span>()</span>
+<span id="cb14-8"><a href="#cb14-8"></a></span>
+<span id="cb14-9"><a href="#cb14-9"></a><span class="bu">input</span> <span class="op">=</span> torch.randint(</span>
+<span id="cb14-10"><a href="#cb14-10"></a>    low<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb14-11"><a href="#cb14-11"></a>    high<span class="op">=</span>model.config.vocab_size,</span>
+<span id="cb14-12"><a href="#cb14-12"></a>    size<span class="op">=</span>(<span class="dv">2</span>, <span class="dv">1024</span>),  <span class="co"># bs x seq_len</span></span>
+<span id="cb14-13"><a href="#cb14-13"></a>    device<span class="op">=</span><span class="st">"cpu"</span>,</span>
+<span id="cb14-14"><a href="#cb14-14"></a>)</span>
+<span id="cb14-15"><a href="#cb14-15"></a></span>
+<span id="cb14-16"><a href="#cb14-16"></a>model <span class="op">=</span> prepare_pippy(model, split_points<span class="op">=</span><span class="st">"auto"</span>, example_args<span class="op">=</span>(<span class="bu">input</span>,))</span>
+<span id="cb14-17"><a href="#cb14-17"></a></span>
+<span id="cb14-18"><a href="#cb14-18"></a><span class="cf">with</span> torch.no_grad():</span>
+<span id="cb14-19"><a href="#cb14-19"></a>    output <span class="op">=</span> model(<span class="bu">input</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section></section>
+<section>
 <section id="adoption-accelerate-in-the-ecosystem" class="title-slide slide level1 center">
 <h1>Adoption: Accelerate in the ecosystem</h1>
 
 </section>
-
-<section id="accelerate-in-the-ecosystem" class="title-slide slide level1 center">
-<h1>Accelerate in the Ecosystem</h1>
+<section id="accelerate-in-the-ecosystem" class="slide level2">
+<h2>Accelerate in the Ecosystem</h2>
+<ul>
+<li>Many of the frameworks you use daily already rely on 🤗 Accelerate!
+<ul>
+<li>Nearly all of 🤗</li>
+<li><code>axolotl</code></li>
+<li><code>fastai</code></li>
+<li><code>FastChat</code></li>
+<li><code>lucidrains</code></li>
+<li><code>kornia</code></li>
+</ul></li>
+</ul>
+</section>
+<section id="accelerate-in-the-ecosystem-1" class="slide level2">
+<h2>Accelerate in the Ecosystem</h2>
 <div style="font-size: 70%;">
 <ul>
 <li>Started as a way to isolate out distributed code on TPU and <code>DistributedDataParallelism</code></li>
 </ul>
 </div>
-<div style="padding-left: 10%;padding-top: 0%;padding-right: 10%;">
-<div id="fig-539a35d47e664c97a50115a146a7f1bd-1" class="quarto-figure quarto-figure-center" width="70%">
-<figure class="quarto-float quarto-float-fig">
-<div>
-<img data-src="sylvain_tweet.JPG" id="fig-539a35d47e664c97a50115a146a7f1bd-1" style="width:70.0%">
-</div>
-</figure>
-</div>
+<div style="padding-left: 30%">
+<p><img data-src="sylvain_tweet.JPG" style="width:70.0%"></p>
 </div>
 </section>
-
-<section id="accelerate-in-the-ecosystem-1" class="title-slide slide level1 center">
-<h1>Accelerate in the Ecosystem</h1>
+<section id="accelerate-in-the-ecosystem-2" class="slide level2">
+<h2>Accelerate in the Ecosystem</h2>
 <div style="font-size: 70%;">
 <ul>
 <li>Now is the backbone of some of the largest PyTorch training frameworks in the ecosystem</li>
 </ul>
 </div>
-
-<img data-src="hf_trainer.JPG" id="fig-539a35d47e664c97a50115a146a7f1bd-2" style="width:70.0%" class="r-stretch quarto-figure-center"></section>
-
+<div style="padding-left: 30%;">
+<p><img data-src="hf_trainer.JPG" style="width:70.0%"></p>
+</div>
+</section></section>
 <section id="whats-next" class="title-slide slide level1 center">
 <h1>What’s next?</h1>
 
@@ -682,6 +840,22 @@ How can we make this better?</li>
 <li>Tried and battle-tested by over 7M users/month</li>
 <li>As we’ve been stable for over a year now, we’re near ready to release 1.0.0</li>
 </ul>
+</section>
+
+<section id="thanks-for-joining" class="title-slide slide level1 center">
+<h1>Thanks for joining!</h1>
+<div style="font-size: 70%;">
+<ul>
+<li><a href="https://hf.co/docs/accelerate">🤗 Accelerate documentation</a></li>
+<li><a href="https://huggingface.co/docs/accelerate/basic_tutorials/launch">Launching distributed code</a></li>
+<li><a href="https://huggingface.co/docs/accelerate/basic_tutorials/notebook">Distributed code and Jupyter Notebooks</a></li>
+<li><a href="https://huggingface.co/docs/accelerate/basic_tutorials/migration">Migrating to 🤗 Accelerate easily</a></li>
+<li><a href="https://huggingface.co/docs/accelerate/usage_guides/big_modeling">Big Model Inference tutorial</a></li>
+<li><a href="https://huggingface.co/docs/accelerate/usage_guides/deepspeed">DeepSpeed and 🤗 Accelerate</a></li>
+<li><a href="https://huggingface.co/docs/accelerate/usage_guides/fsdp">Fully Sharded Data Parallelism and 🤗 Accelerate</a></li>
+<li><a href="https://huggingface.co/docs/accelerate/concept_guides/fsdp_and_deepspeed">FSDP vs DeepSpeed In-Depth</a></li>
+</ul>
+</div>
 <div class="footer footer-default">
 
 </div>
@@ -712,6 +886,7 @@ How can we make this better?</li>
       Reveal.initialize({
 'controlsAuto': true,
 'previewLinksAuto': false,
+'smaller': false,
 'pdfSeparateFragments': false,
 'autoAnimateEasing': "ease",
 'autoAnimateDuration': 1,
@@ -805,7 +980,7 @@ How can we make this better?</li>
         showNotes: false,
 
         // Global override for autoplaying embedded media (null/true/false)
-        autoPlayMedia: null,
+        autoPlayMedia: true,
 
         // Global override for preloading lazy-loaded iframes (null/true/false)
         preloadIframes: null,
@@ -972,9 +1147,10 @@ How can we make this better?</li>
         // clear code selection
         e.clearSelection();
       });
-      function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      function tippyHover(el, contentFn) {
         const config = {
           allowHTML: true,
+          content: contentFn,
           maxWidth: 500,
           delay: 100,
           arrow: false,
@@ -984,17 +1160,8 @@ How can we make this better?</li>
           interactive: true,
           interactiveBorder: 10,
           theme: 'light-border',
-          placement: 'bottom-start',
+          placement: 'bottom-start'
         };
-        if (contentFn) {
-          config.content = contentFn;
-        }
-        if (onTriggerFn) {
-          config.onTrigger = onTriggerFn;
-        }
-        if (onUntriggerFn) {
-          config.onUntrigger = onUntriggerFn;
-        }
           config['offset'] = [0,0];
           config['maxWidth'] = 700;
         window.tippy(el, config); 
@@ -1050,6 +1217,7 @@ How can we make this better?</li>
       }
     });
     </script>
+    
     
 
 </body></html>

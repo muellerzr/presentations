@@ -5,6 +5,7 @@ format:
     revealjs:
         theme: moon
         fig-format: png
+        auto-play-media: true
 ---
 
 ## Who am I?
@@ -16,34 +17,39 @@ format:
 
 ## What is 🤗 Accelerate?
 
-```{mermaid}
-%%| fig-height: 6
-graph LR
-    A(("🤗 Accelerate#32;"))
-    A --> B["CLI Interface#32;"]
-    A --> C["Training Framework#32;"]
-    A --> D["Inference Framework#32;"]
-```
+* A training framework
+* An inference framework
+* A command-line interface
 
 ## A Training Framework
 
 * Powered by PyTorch
-* Device *and* hardware-agnostic
-* Low-code, with minimal magic
+* Change a few lines of code, gain device *and* hardware-agnostic capabilities
+* Low-code, with minimal magic aimed at easy hackability and use without high-level abstractions
+* We handle the intracies so you don't have to
 
 ## A Training Framework
+
+::: {style="font-size: 70%;"}
 
 * Support for any hardware-accelerator on the market:
   * CPU, GPU, TPU, XPU, NPU, MLU
 * Automatic mixed-precision training *safely* in whatever fashion you may choose:
   * FP16, BF16, FP8 (through either `TransformerEngine` or `MS-AMP`)
-* Easy to configure class-level or YAML-level for setting up advanced engines like `FSDP` or `DeepSpeed`
+* Automatic and efficient gradient accumulation
+* Support for quantization through `bitsandbytes`
+* Support your favorite experiment trackers (`aim`, `clearml`, `comet_ml`, `dvc-lite`, `ml-flow`, `tensorboard`, `wandb`)
+* Easy to configure plugin or YAML-level API for setting up advanced frameworks like `FSDP`, `DeepSpeed`, and `Megatron-LM`
+:::
 
 ## Low-Code 
-* Biggest friction with "wrapper" libraries is control of your code
-* By being minimally intrusive, your code just "works"
 
-::: {style="font-size: 50%;padding-left:20%;padding-top:0%;padding-right:25%"}
+::: {style="font-size: 70%;"}
+* Biggest friction with "wrapper" libraries is control of your code
+* By being minimally intrusive, your code just "works" while still giving you complete control
+:::
+
+::: {style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%"}
 ```diff
   import torch
   import torch.nn.functional as F
@@ -75,19 +81,111 @@ graph LR
 :::
 
 ## Easy to integrate
+
 ::: {style="font-size: 70%;"}
 * Due to the low-code nature, it's trivial to integrate into existing PyTorch frameworks:
   1. Create an `Accelerator`
-  2. Wrap your PyTorch objects with `accelerator.prepare`
-  3. Use `accelerator.backward` for the backward pass
-* Many of the frameworks you use daily already rely on 🤗 Accelerate too!
-  * Nearly all of 🤗
-  * `axolotl`
-  * `fastai`
-  * `FastChat`
-  * `lucidrains`
-  * `kornia`
 :::
+
+::: {style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%"}
+```diff
+  import torch
+  import torch.nn.functional as F
+  from datasets import load_dataset
++ from accelerate import Accelerator
+
++ accelerator = Accelerator()
+  device = 'cpu'
+
+  model = torch.nn.Transformer().to(device)
+  optimizer = torch.optim.Adam(model.parameters())
+  dataset = load_dataset('my_dataset')
+  data = torch.utils.data.DataLoader(dataset, shuffle=True)
+
+  model.train()
+  for epoch in range(10):
+      for source, targets in dataloader:
+          source, targets = source.to(device), targets.to(device)
+          optimizer.zero_grad()
+          output = model(source)
+          loss = F.cross_entropy(output, targets)
+          loss.backward()
+          optimizer.step()
+```
+:::
+
+## Easy to integrate
+
+::: {style="font-size: 70%;"}
+* Due to the low-code nature, it's trivial to integrate into existing PyTorch frameworks:
+  2. Wrap your PyTorch objects with `accelerator.prepare` and remove device-placements
+:::
+
+::: {style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%"}
+```diff
+  import torch
+  import torch.nn.functional as F
+  from datasets import load_dataset
+  from accelerate import Accelerator
+
+  accelerator = Accelerator()
+- device = 'cpu'
+
+  model = torch.nn.Transformer().to(device)
+  optimizer = torch.optim.Adam(model.parameters())
+  dataset = load_dataset('my_dataset')
+  data = torch.utils.data.DataLoader(dataset, shuffle=True)
+
++ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
+
+  model.train()
+  for epoch in range(10):
+      for source, targets in dataloader:
+          source, targets = source.to(device), targets.to(device)
+          optimizer.zero_grad()
+          output = model(source)
+          loss = F.cross_entropy(output, targets)
+          loss.backward()
+          optimizer.step()
+```
+:::
+
+## Easy to integrate
+
+::: {style="font-size: 70%;"}
+* Due to the low-code nature, it's trivial to integrate into existing PyTorch frameworks:
+  3. Use `accelerator.backward` for the backward pass
+:::
+
+::: {style="font-size: 60%;padding-left:15%;padding-top:0%;padding-right:20%"}
+```diff
+  import torch
+  import torch.nn.functional as F
+  from datasets import load_dataset
+  from accelerate import Accelerator
+
+  accelerator = Accelerator()
+
+  model = torch.nn.Transformer().to(device)
+  optimizer = torch.optim.Adam(model.parameters())
+  dataset = load_dataset('my_dataset')
+  data = torch.utils.data.DataLoader(dataset, shuffle=True)
+
+  model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
+
+  model.train()
+  for epoch in range(10):
+      for source, targets in dataloader:
+          source, targets = source.to(device), targets.to(device)
+          optimizer.zero_grad()
+          output = model(source)
+          loss = F.cross_entropy(output, targets)
+-         loss.backward()
++         accelerator.backward(loss)
+          optimizer.step()
+```
+:::
+
 
 ## But what about inference?
 
@@ -99,7 +197,10 @@ graph LR
 
 * PyTorch introduced `device="meta"`
 * 🤗 Accelerate introduced `device_map="auto"`
-* As an input goes through the models, the layers are moved automatically to the right device while the old layers are shoved back to the CPU (or even disk)
+
+::: {style="padding-left:15%;padding-right:20%"}
+{{< video big_model_visualization.mp4 width="800" height="400" >}}
+:::
 
 ## A CLI Interface
 * `accelerate config`
@@ -108,28 +209,65 @@ graph LR
   * How to run your script
 
 ## Launching distributed training is hard
-- ```bash 
+
+::: {style="padding-top:0%;padding-left:10%;padding-right:15%;padding-bottom:0%"}
+```bash 
 python script.py
 ```
-- ```bash 
+:::
+::: {style="padding-left:50%;padding-bottom:0%;padding-top:0%;"}
+vs.
+:::
+<br>
+
+::: {style="padding-top:0%;padding-left:10%;padding-right:15%;padding-bottom:0%"}
+```bash 
 torchrun --nnodes=1 --nproc_per_node=2 script.py
 ```
-- ```bash 
+:::
+::: {style="padding-left:50%;padding-bottom:0%;padding-top:0%;"}
+vs.
+:::
+<br>
+
+::: {style="padding-top:0%;padding-left:10%;padding-right:15%;padding-bottom:0%"}
+```bash 
 deepspeed --num_gpus=2 script.py
 ```
+<br>
+:::
 How can we make this better?
+
 
 ## `accelerate launch`
 
+::: {style="padding-top:0%;padding-left:5%;padding-right:10%;padding-bottom:0%"}
 ```bash
 accelerate launch script.py
 ```
+
+<br>
+
+```bash
+accelerate launch --multi_gpu --num_processes 2 script.py
+```
+
+<br>
+
+```bash
+accelerate launch \
+  --multi_gpu \ 
+  --use_deepspeed \
+  --num_processes 2 \
+  script.py
+```
+:::
 
 ## `accelerate config`
 * Rely on `config.yaml` files
 * Choose to either running `accelerate config` or write your own:
 
-:::: {.columns style="font-size: 50%;padding-left:10%;"}
+:::: {.columns style="font-size: 60%;padding-left:5%;padding-right:5%"}
 ::: {.column width="40%"}
 ```{.yaml filename=ddp_config.yaml}
 compute_environment: LOCAL_MACHINE
@@ -180,29 +318,84 @@ num_processes: 8
 
 All of which are supported by 🤗 Accelerate
 
+
+## Lower abstractions
+* While the `Accelerator` was great, needed better abstractions focused on controlling behaviors
+* Introduced the `PartialState`
+
+::: {style="padding-left:10%;padding-top:0%;padding-right:15%"}
+```python
+from accelerate import PartialState
+
+if PartialState().is_main_process:
+  # Run on only 1 device
+
+with PartialState().main_process_first:
+  # Useful for dataset processing
+
+# Device-agnostic without the bulk of the `Accelerator`
+device = PartialState().device
+```
+:::
+
 ## Faster and better inference alternatives
+::: {style="font-size:70%"}
 - `PiPPy` gives us efficient pipeline-parallelism in distributed environments to increase throughput while keeping a simple torch-bound API
+- Rather than having to wait for each GPU, every GPU can be busy in parallel
+:::
+::: {style="font-size:60%;padding-left:19%;padding-top:0%;padding-right:24%;"}
+```python
+import torch
+from transformers import AutoModelForSequenceClassification
 
-[Insert PiPPY visualization] (left half)
+from accelerate import PartialState, prepare_pippy
 
-[Insert PiPPY code] (right half)
+model = AutoModelForSequenceClassification.from_pretrained("gpt2")
+model.eval()
+
+input = torch.randint(
+    low=0,
+    high=model.config.vocab_size,
+    size=(2, 1024),  # bs x seq_len
+    device="cpu",
+)
+
+model = prepare_pippy(model, split_points="auto", example_args=(input,))
+
+with torch.no_grad():
+    output = model(input)
+```
+:::
+
 
 # Adoption: Accelerate in the ecosystem
 
-# Accelerate in the Ecosystem
+## Accelerate in the Ecosystem
+* Many of the frameworks you use daily already rely on 🤗 Accelerate!
+  * Nearly all of 🤗
+  * `axolotl`
+  * `fastai`
+  * `FastChat`
+  * `lucidrains`
+  * `kornia`
+
+
+## Accelerate in the Ecosystem
 ::: {style="font-size: 70%;"}
 - Started as a way to isolate out distributed code on TPU and `DistributedDataParallelism`
 :::
 
-::: {style="padding-left: 10%;padding-top: 0%;padding-right: 10%;"}
+::: {style="padding-left: 30%"}
 ![](sylvain_tweet.JPG){width="70%"}
 :::
 
-# Accelerate in the Ecosystem
+## Accelerate in the Ecosystem
 ::: {style="font-size: 70%;"}
 - Now is the backbone of some of the largest PyTorch training frameworks in the ecosystem
 :::
+::: {style="padding-left: 30%;"}
 ![](hf_trainer.JPG){width="70%"}
+:::
 
 # What's next?
 
@@ -216,3 +409,17 @@ All of which are supported by 🤗 Accelerate
 
 * Tried and battle-tested by over 7M users/month
 * As we've been stable for over a year now, we're near ready to release 1.0.0
+
+# Thanks for joining!
+
+::: {style="font-size: 70%;"}
+
+- [🤗 Accelerate documentation](https://hf.co/docs/accelerate)
+- [Launching distributed code](https://huggingface.co/docs/accelerate/basic_tutorials/launch)
+- [Distributed code and Jupyter Notebooks](https://huggingface.co/docs/accelerate/basic_tutorials/notebook)
+- [Migrating to 🤗 Accelerate easily](https://huggingface.co/docs/accelerate/basic_tutorials/migration)
+- [Big Model Inference tutorial](https://huggingface.co/docs/accelerate/usage_guides/big_modeling)
+- [DeepSpeed and 🤗 Accelerate](https://huggingface.co/docs/accelerate/usage_guides/deepspeed)
+- [Fully Sharded Data Parallelism and 🤗 Accelerate](https://huggingface.co/docs/accelerate/usage_guides/fsdp)
+- [FSDP vs DeepSpeed In-Depth](https://huggingface.co/docs/accelerate/concept_guides/fsdp_and_deepspeed)
+:::
