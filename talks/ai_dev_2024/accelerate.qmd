@@ -1,0 +1,218 @@
+---
+title: "Hugging Face Accelerate: Making device-agnostic ML training and inference easy at scale"
+
+format: 
+    revealjs:
+        theme: moon
+        fig-format: png
+---
+
+## Who am I?
+
+- Zachary Mueller
+- Technical Lead for the 🤗 Accelerate project
+- Maintain the `transformers` Trainer
+- API design geek
+
+## What is 🤗 Accelerate?
+
+```{mermaid}
+%%| fig-height: 6
+graph LR
+    A(("🤗 Accelerate#32;"))
+    A --> B["CLI Interface#32;"]
+    A --> C["Training Framework#32;"]
+    A --> D["Inference Framework#32;"]
+```
+
+## A Training Framework
+
+* Powered by PyTorch
+* Device *and* hardware-agnostic
+* Low-code, with minimal magic
+
+## A Training Framework
+
+* Support for any hardware-accelerator on the market:
+  * CPU, GPU, TPU, XPU, NPU, MLU
+* Automatic mixed-precision training *safely* in whatever fashion you may choose:
+  * FP16, BF16, FP8 (through either `TransformerEngine` or `MS-AMP`)
+* Easy to configure class-level or YAML-level for setting up advanced engines like `FSDP` or `DeepSpeed`
+
+## Low-Code 
+* Biggest friction with "wrapper" libraries is control of your code
+* By being minimally intrusive, your code just "works"
+
+::: {style="font-size: 50%;padding-left:20%;padding-top:0%;padding-right:25%"}
+```diff
+  import torch
+  import torch.nn.functional as F
+  from datasets import load_dataset
++ from accelerate import Accelerator
+
++ accelerator = Accelerator()
+- device = 'cpu'
++ device = accelerator.device
+
+  model = torch.nn.Transformer().to(device)
+  optimizer = torch.optim.Adam(model.parameters())
+  dataset = load_dataset('my_dataset')
+  data = torch.utils.data.DataLoader(dataset, shuffle=True)
+
++ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
+
+  model.train()
+  for epoch in range(10):
+      for source, targets in dataloader:
+          source, targets = source.to(device), targets.to(device)
+          optimizer.zero_grad()
+          output = model(source)
+          loss = F.cross_entropy(output, targets)
+-         loss.backward()
++         accelerator.backward(loss)
+          optimizer.step()
+```
+:::
+
+## Easy to integrate
+::: {style="font-size: 70%;"}
+* Due to the low-code nature, it's trivial to integrate into existing PyTorch frameworks:
+  1. Create an `Accelerator`
+  2. Wrap your PyTorch objects with `accelerator.prepare`
+  3. Use `accelerator.backward` for the backward pass
+* Many of the frameworks you use daily already rely on 🤗 Accelerate too!
+  * Nearly all of 🤗
+  * `axolotl`
+  * `fastai`
+  * `FastChat`
+  * `lucidrains`
+  * `kornia`
+:::
+
+## But what about inference?
+
+* 🤗 Accelerate is not just for training, and has helped make the GPU-Poor take control of the narrative
+* Using tools like Big Model Inference, users with *tiny* compute can run large models locally
+* Started with the boom of stable diffusion, and now has scaled to having the ability to run huge LLMs locally with a single graphics card
+
+## How does it work?
+
+* PyTorch introduced `device="meta"`
+* 🤗 Accelerate introduced `device_map="auto"`
+* As an input goes through the models, the layers are moved automatically to the right device while the old layers are shoved back to the CPU (or even disk)
+
+## A CLI Interface
+* `accelerate config`
+  * Configure the environment
+* `accelerate launch`
+  * How to run your script
+
+## Launching distributed training is hard
+- ```bash 
+python script.py
+```
+- ```bash 
+torchrun --nnodes=1 --nproc_per_node=2 script.py
+```
+- ```bash 
+deepspeed --num_gpus=2 script.py
+```
+How can we make this better?
+
+## `accelerate launch`
+
+```bash
+accelerate launch script.py
+```
+
+## `accelerate config`
+* Rely on `config.yaml` files
+* Choose to either running `accelerate config` or write your own:
+
+:::: {.columns style="font-size: 50%;padding-left:10%;"}
+::: {.column width="40%"}
+```{.yaml filename=ddp_config.yaml}
+compute_environment: LOCAL_MACHINE
+distributed_type: MULTI_GPU
+main_training_function: main
+mixed_precision: bf16
+num_machines: 1
+num_processes: 8
+```
+:::
+::: {.column width="40%"}
+```{.yaml filename=fsdp_config.yaml}
+compute_environment: LOCAL_MACHINE
+distributed_type: FSDP
+fsdp_config:
+  fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
+  fsdp_backward_prefetch: BACKWARD_PRE
+  fsdp_cpu_ram_efficient_loading: true
+  fsdp_forward_prefetch: false
+  fsdp_offload_params: false
+  fsdp_sharding_strategy: FULL_SHARD
+  fsdp_state_dict_type: SHARDED_STATE_DICT
+  fsdp_sync_module_states: true
+  fsdp_use_orig_params: false
+main_training_function: main
+mixed_precision: bf16
+num_machines: 1
+num_processes: 8
+```
+:::
+::::
+
+# Now that you're up to speed, what's new?
+
+# We've had a busy last year, and so has the ML Community!
+
+## New training techniques
+- Quantization has taken the field by storm
+- New ideas such as FSDP + QLoRA to train huge models on tiny compute!
+- New precision backends as we train natively on smaller precision
+- Optimizing futher how much we can push on a single machine through efficient RAM and timing techniques
+
+## Larger compute landscape
+- As we search for alternatives to NVIDIA, new compilers rise:
+  - XPU (Intel)
+  - NPU (Intel)
+  - MLU (Cambricon)
+
+All of which are supported by 🤗 Accelerate
+
+## Faster and better inference alternatives
+- `PiPPy` gives us efficient pipeline-parallelism in distributed environments to increase throughput while keeping a simple torch-bound API
+
+[Insert PiPPY visualization] (left half)
+
+[Insert PiPPY code] (right half)
+
+# Adoption: Accelerate in the ecosystem
+
+# Accelerate in the Ecosystem
+::: {style="font-size: 70%;"}
+- Started as a way to isolate out distributed code on TPU and `DistributedDataParallelism`
+:::
+
+::: {style="padding-left: 10%;padding-top: 0%;padding-right: 10%;"}
+![](sylvain_tweet.JPG){width="70%"}
+:::
+
+# Accelerate in the Ecosystem
+::: {style="font-size: 70%;"}
+- Now is the backbone of some of the largest PyTorch training frameworks in the ecosystem
+:::
+![](hf_trainer.JPG){width="70%"}
+
+# What's next?
+
+# Elevating the community
+
+* Now that more advanced training techniques are reachable (FSDP, DeepSpeed, etc), we need to focus on educating the community on how to use it best
+* Goes beyond how to use the `Trainer` or `Accelerator`, but how to use *what* where
+* Keep Accelerate as a tool for the community to utilize when new techniques come out and play with, to push new ideas to scale quickly
+
+# 1.0.0: Soon!
+
+* Tried and battle-tested by over 7M users/month
+* As we've been stable for over a year now, we're near ready to release 1.0.0
