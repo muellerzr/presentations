@@ -1,0 +1,240 @@
+---
+title: "Making device-agnostic ML training and inference easy at scale: A discussion on framework design"
+
+format: 
+    revealjs:
+        theme: moon
+        fig-format: png
+        auto-play-media: true
+---
+
+## Who am I?
+
+- Zachary Mueller
+- Technical Lead for the 🤗 Accelerate project
+- Maintain the `transformers` Trainer
+- B.S. in Software Design and Development, minor in Comp Sci
+- API design geek
+
+## Agenda
+
+- What makes training at scale difficult
+- Current leading approaches
+- Case study into 🤗 Accelerate, and its approach
+
+# Humble beginnings
+
+## Practitioner vs Engineer
+
+- LoE to go from "code works on one machine" to scale at 1-200 machines is non-trivial
+- LoE to go from a small model (8B) -> large model (70B+) requires advanced training techniques 
+- DeepSpeed? FSDP? FSDPv2?
+- GPU? TPU? What backend do you choose?
+
+
+## Biggest Problems
+
+1. Cost: how much training can I do? What is my budget? What size model?
+2. Time: Based on 1, which training techniques are best? Each come with a cost (memory usage vs time/communication)
+
+# How does training scale in PyTorch?
+
+## How does training scale in PyTorch?
+
+::: {style="font-size: 80%;"}
+- Data Parallelism
+  - Shard the data to make training faster. Requires full model on each GPU, doesn't scale very well (e.g. H200/140GB/~70B param model)
+- Model Parallelism
+  - Shard the model across different devices to train on a larger model easier
+- TensorParallel
+  - Data Parallelism + Model Parallelism
+- At scale: **ZeRO**
+  - Similar to TP, but can do much more advanced resource techniques based on situation
+:::
+
+
+# Current Best Approach: ZeRO<br>(Zero Redundancy Optimizer)
+
+## ZeRO Algorithm
+
+![](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/parallelism-zero.png)
+
+Example model size: 7.5B parameters
+
+## DeepSpeed ZeRO vs PyTorch FSDP
+
+* Implementations of the same algorithm, with different interfaces
+
+![](trenchcoat.png)
+
+# Implementation: To use a wrapping library or not
+
+## Simplistic systems aren't always "simple"
+
+I have seen frameworks that allowed applications to be written with only a few lines of code, but it was extremely difficult to figure out what those lines were. **Sometimes an approach that requires more lines of code is actually simpler, because it reduces cognitive load.** - John Ousterhout, A Philosophy of Software Design
+
+## Simplistic systems aren't always "simple"
+
+- Many frameworks hide layers upon layers of abstraction behind simplistic calls (`Trainer.train`, `Learner.fine_tune`, etc)
+- While these are not always *bad*, if issues arise during model training due to a code failure deep in the dependencies, this should be one of the first points we see, rather than needing to dig through a leauge of stack traces
+- Cost of abstraction VS clarity
+
+# Interrogation: Hugging Face
+
+## Interrogation: Hugging Face ecosystem
+
+* `axolotl` -> Highest abstraction
+  * Write a `config.yaml` and go.
+* `tranformers.Trainer` -> Abstract your training loop
+  * Create your model, tokenize your dataset, and let `Trainer` handle the rest
+* `accelerate` -> Lowest level abstraction
+  * **Just** handles base requirements needed for distributed programming, leaving the rest of the training loop untouched
+
+## `accelerate`: A Deep Dive
+
+* Came from a need of simplifying the `Trainer`
+* Users want more control over their code after a few base tests, rather than intense wrapping
+* New challenge: **How can we abstract away as much as possible with distributed training, while maintaining clarity in the code?**
+
+## The Game: Reduce friction while being helpful
+
+* **"Your job as a developer is not just to create code that you can work with easily, but to create code that others can also work with easily"** - J Ousterhout
+* Must make distributed training as simplistic as possible
+* Must also ensure that experts in FSDP, DeepSpeed, etc. can find their experience frictionless
+* Code that works on a single machine *must scale without issues*
+
+## The Result
+
+::: {style="font-size: 70%;padding-left:10%;padding-top:0%;padding-right:15%"}
+```diff
+  import torch
+  import torch.nn.functional as F
+  from datasets import load_dataset
++ from accelerate import Accelerator
+
++ accelerator = Accelerator()
+- device = 'cpu'
++ device = accelerator.device
+
+  model = torch.nn.Transformer().to(device)
+  optimizer = torch.optim.Adam(model.parameters())
+  dataset = load_dataset('my_dataset')
+  data = torch.utils.data.DataLoader(dataset, shuffle=True)
+
++ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
+
+  model.train()
+  for epoch in range(10):
+      for source, targets in dataloader:
+          source, targets = source.to(device), targets.to(device)
+          optimizer.zero_grad()
+          output = model(source)
+          loss = F.cross_entropy(output, targets)
+-         loss.backward()
++         accelerator.backward(loss)
+          optimizer.step()
+```
+:::
+
+# How the API is Designed
+
+## `accelerator`
+::: {style="font-size: 70%;"}
+- Highest level of abstraction, handles:
+  - Wrapping your model, data, optimizer, etc for whatever distributed backend you are using (`DDP`, `deepspeed`, `torch.distributed.FSDP`)
+  - Feeding to the right `backward()` and `step()` implementation
+  - Proper gradient accumulation techniques to minimize communication times
+:::
+
+::: {style="font-size:70%;padding-left:9%;padding-top:0%;padding-right:16%;"}
+```python
+from accelerate import Accelerator, FullyShardedDataParallelPlugin, DeepSpeedPlugin
+
+# For FSDP
+fsdp_plugin = FullyShardedDataParallelPlugin(
+    fsdp_auto_wrap_policy="TRANSFORMERS_BASED_WRAP",
+    fsdp_cpu_ram_efficient_loading=True,
+    fsdp_sharding_strategy="FULL_SHARD",
+    fsdp_use_orig_params=True,
+)
+# For DeepSpeed
+deepspeed_plugin = DeepSpeedPlugin(
+    hs_ds_config="my_config.yaml"
+)
+
+accelerator = Accelerator(
+    fsdp_plugin=fsdp_plugin,
+    #deepspeed_plugin=deepspeed_plugin,
+    mixed_precision="bfloat16" # none | fp16 | fp8
+)
+```
+:::
+
+## `PartialState`
+
+::: {style="font-size: 70%;"}
+* Made for users who want absolute control over everything, and just want `Accelerate` to know how to spin up the distributed setup + device management
+:::
+
+::: {style="padding-left:5%;padding-top:0%;padding-right:10%;"}
+```python
+from accelerate import PartialState
+
+state = PartialState()
+
+torch_device = state.device
+
+with state.main_process_first:
+    process_dataset()
+
+if state.is_main_process:
+    do_something_on_one_machine_one_process()
+
+if state.is_local_main_process:
+    do_something_on_each_machine_one_process()
+
+with state.split_between_processes(inputs=["a","b","c"]) as item:
+    print(item) # process 0 == a, 1 == b, etc
+```
+:::
+
+
+# Cognative Load within Accelerate
+
+## Cognative Load within Accelerate
+
+* Because of the minimal-intrusion approach, problems that stem from PyTorch or `DeepSpeed` appear immediatly and aren't abstracted into oblivion
+* Lowest cognative load: Using `accelerate config` && `accelerate launch` to run your code
+* Highest cognative load: Understanding the underlying changes to the `DataLoader` after calling `accelerator.prepare()`
+
+## Evidence of Success: Contributions
+
+::: {style="font-size: 90%;"}
+* One can say "readable code", "approachable code", etc but if the lens is just the author or power-users, you've excluded the other 99% of your userbase
+* How can we accuratly judge how easy or "hackable" a codebase is? **Community contributions**
+* 250 *non-employee contributors*
+* **60%** of supported backends come from contributors
+  * MLU, MUSA, XPU, NPU
+* Of those, many of them come from the direct teams involved with these backends, providing day 1 support
+:::
+
+## Risk with Accelerate/"Locked into the ecocystem"
+
+::: {style="font-size: 90%;"}
+* As with any framework, there is always risk of being "locked in"
+* With the `Trainer`/`axolotl`, if you don't learn what's happening under the hood eventually you are stuck with the abstractions presented before you, and any breaking changes
+* With `accelerate` as it's a "core" implementation of barebones distributed training techniques, the risk is minimal.
+* If deemed too "locked in", the simplified codebase allows users to learn quickly all of the wrapping performed, and remove every abstraction to run "baremetal"
+:::
+
+## What have we learned?
+::: {style="font-size: 80%;"}
+* With scale comes cognative overload
+* Solutions exist to minimize this (`axolotl`, `transformers.Trainer`, `accelerate`) at the cost of abstraction
+* `accelerate` is one such solution with:
+  * a minimal abstraction cost with the highest level of freedom
+  * enables researchers to scale their research faster, without needing to overly-translate their code to adhear to specific framework guidelines
+  * can be an educational resource on scalable training, and learn how to rip out the API through a low-magic low-code approach
+:::
+
+# Thanks for joining, questions?
