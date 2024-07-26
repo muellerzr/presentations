@@ -342,6 +342,7 @@ device = PartialState().device
 ::: {style="font-size:70%"}
 - `PiPPy` gives us efficient pipeline-parallelism in distributed environments to increase throughput while keeping a simple torch-bound API
 - Rather than having to wait for each GPU, every GPU can be busy in parallel
+- Will be critical as larger LLMs take hold and more than one computer is needed
 :::
 ::: {style="font-size:60%;padding-left:19%;padding-top:0%;padding-right:24%;"}
 ```python
@@ -407,7 +408,7 @@ with torch.no_grad():
 
 # 1.0.0: Soon!
 
-* Tried and battle-tested by over 7M users/month
+* Tried and battle-tested by over 7M users/month | 110M+ total downloads
 * As we've been stable for over a year now, we're near ready to release 1.0.0
 
 # Thanks for joining!
