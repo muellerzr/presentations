@@ -1,0 +1,114 @@
+---
+title: "How to Make High Level Frameworks Work for You"
+
+format: 
+  revealjs:
+    theme: moon
+    fig-format: png
+    auto-play-media: true
+---
+
+# The story so far
+
+## The story so far
+- High level frameworks
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+    - Magical
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+    - Magical
+    - Difficult to debug
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+    - Magical
+    - Difficult to debug
+    - Get you started with an applied problem
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+    - Magical
+    - Difficult to debug
+    - Get you started with an applied problem
+- Low Level Frameworks
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+    - Magical
+    - Difficult to debug
+    - Get you started with an applied problem
+- Low Level Frameworks
+    - Less magic (on purpose)
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+    - Magical
+    - Difficult to debug
+    - Get you started with an applied problem
+- Low Level Frameworks
+    - Less magic (on purpose)
+    - Problem-oriented
+
+## The story so far
+- High level frameworks
+    - Aimed at beginners
+    - Magical
+    - Difficult to debug
+    - Get you started with an applied problem
+- Low Level Frameworks
+    - Less magic (on purpose)
+    - Problem-oriented
+    - Education vectors
+
+# What's next?
+
+# High Level Frameworks (revisited)
+
+## High Level Frameworks
+
+- New perspectives
+
+## High Level Frameworks
+
+- New perspectives
+- Easier to understand errors that are happening
+
+## High Level Frameworks
+
+- New perspectives
+- Easier to understand errors that are happening
+- Easier to "hack" away at problems
+
+## Hacking away at problems
+
+- Does the `Trainer` not do enough? Make your own
+- Want to combine 2 different frameworks? Do it
+- Need XYZ capacity, but the developers won't merge? Host your own fork
+
+## Free From the Chains, and Think For Yourself
+
+- Once you know how a framework operates, you can completely redesign your own
+- Publish it, get feedback from users. 
+- Find the problem your version solves
+
+# Make your life 5 months ago easier
+
+## Make your life 5 months ago easier
+- Identify painpoints in the APIs you learned from
+- Pivot to solving these problems
+- Market the hell out of it (Unsloth)
+
+# Thank you
